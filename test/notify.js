@@ -29,8 +29,10 @@ const setupTest = async isNpmReturnValue => {
 };
 
 let errorLogs = '';
+let isTty;
 
 test.beforeEach(async () => {
+	isTty = process.stdout.isTTY;
 	await setupTest();
 
 	stderr.capture(s => {
@@ -40,6 +42,7 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(() => {
+	process.stdout.isTTY = isTty;
 	stderr.release();
 	errorLogs = '';
 });
@@ -136,6 +139,13 @@ test('should not output if current version is more recent than the reported late
 	await setupTest(true);
 	const notifier = new Control(true);
 	notifier.update.current = '1.0.1';
+	notifier.notify({defer: false});
+	t.false(stripAnsi(errorLogs).includes('Update available'));
+});
+
+test('should not output when stdout is not a TTY', t => {
+	process.stdout.isTTY = false;
+	const notifier = new Control(true);
 	notifier.notify({defer: false});
 	t.false(stripAnsi(errorLogs).includes('Update available'));
 });
