@@ -69,3 +69,34 @@ test('don\'t initialize configStore when NODE_ENV === "test"', async t => {
 	const notifier = updateNotifier(generateSettings());
 	t.is(notifier.config, undefined);
 });
+
+test('supports deprecated packageName and packageVersion options', async t => {
+	const updateNotifier = await esmock('../index.js', undefined, {
+		'is-in-ci': false,
+		'latest-version': async () => '0.0.3',
+	});
+	const notifier = updateNotifier({
+		packageName: 'update-notifier-tester',
+		packageVersion: '0.0.2',
+	});
+	configstorePath = notifier.config.path;
+	const update = await notifier.fetchInfo();
+
+	t.like(update, {
+		name: 'update-notifier-tester',
+		current: '0.0.2',
+		latest: '0.0.3',
+	});
+});
+
+test('throws when package metadata is missing', async t => {
+	const {default: UpdateNotifier} = await esmock('../update-notifier.js', undefined, {'is-in-ci': false});
+
+	t.throws(() => new UpdateNotifier(), {
+		message: 'pkg.name and pkg.version required',
+	});
+
+	t.throws(() => new UpdateNotifier({pkg: {name: 'update-notifier-tester'}}), {
+		message: 'pkg.name and pkg.version required',
+	});
+});
